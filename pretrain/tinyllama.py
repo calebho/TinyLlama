@@ -319,6 +319,7 @@ def create_dataloader(
         random.seed(seed)
         random.shuffle(filenames)
 
+        # print(f"Creating a dataloader. Filenames: {len(filenames)}")
         dataset = PackedDataset(
             filenames,
             # n_chunks control the buffer size.

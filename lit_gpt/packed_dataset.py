@@ -47,6 +47,8 @@ class PackedDataset(IterableDataset):
         max_num_files = len(self._filenames) // num_shards * num_shards
         filenames = self._filenames[shard_id:max_num_files:num_shards]
 
+        # print(f"PackedDataset: process rank: {self._process_rank}, num workers: {num_workers}, shard id: {shard_id}, len(filenames): {len(filenames)}\
+        # , num_shards: {num_shards}, max_num_files: {max_num_files}, num_processes: {self._num_processes}")
         return PackedDatasetIterator(
             filenames=filenames,
             n_chunks=self._n_chunks,
@@ -145,6 +147,7 @@ class PackedDatasetIterator:
         self._block_idxs = []
         self._curr_idx = 0
 
+        # print("Load chunks from init iterator")
         self._load_n_chunks()
 
     def _read_header(self, path):
@@ -167,13 +170,22 @@ class PackedDatasetIterator:
         self._mmaps = []
         self._buffers = []
 
-        if self._n_chunks > len(self._filenames[self._file_idx :]):
+        # APO added the = in the condition it used to be just >
+        if self._n_chunks >= len(self._filenames[self._file_idx :]):
             # if not self._wrap:
             #     raise StopIteration
             self._file_idx = 0
 
         for i in range(self._n_chunks):
-            filename = self._filenames[self._file_idx + i]
+            # APO added the following line to fix an error that occurs when
+            # there are fewer than n_chunks files left to read
+            if self._file_idx + i >= len(self._filenames):
+                # print(f"PackedDatasetIterator: file_idx: {self._file_idx}, i: {i}, len(self._filenames): {len(self._filenames)}")
+                filename = self._filenames[-1]
+            else:
+                # print(f"PackedDatasetIterator: file_idx: {self._file_idx}, i: {i}, len(self._filenames): {len(self._filenames)}")
+                filename = self._filenames[self._file_idx + i]
+
             if self._dtype is None:
                 self._dtype, self._chunk_size = self._read_header(filename)
                 self._n_blocks = self._chunk_size // self._block_size
@@ -199,10 +211,14 @@ class PackedDatasetIterator:
 
     def __next__(self):
         if self._curr_idx >= len(self._block_idxs):
+            # print("PackedDatasetIterator: reloading")
             self._load_n_chunks()
             # TODO: trigger fetching next next n_chunks if remote
+        # print(f"PackedDatasetIterator: filenames: {len(self._filenames)}, _block_idxs size: {len(self._block_idxs)}, currid: {self._curr_idx} fileid: {self._file_idx}")
         block_idx = self._block_idxs[self._curr_idx]
         chunk_id = block_idx // self._n_blocks
+        # print(f"PackedDatasetIterator: filenames: {len(self._filenames)}, buffer size: {len(self._buffers)}, blockid: {block_idx}, chunkid: {chunk_id}, fileid: {self._file_idx}")
+
         buffer = self._buffers[chunk_id]
         elem_id = (block_idx % self._n_blocks) * self._block_size
         offset = np.dtype(self._dtype).itemsize * elem_id
