@@ -1,0 +1,76 @@
+[project]
+authors = [{name = "Caleb Ho", email = "calebh@meta.com"}]
+dependencies = [
+  "lightning@git+https://github.com/Lightning-AI/lightning@master",
+  "jsonargparse[signatures]",
+  "pandas",
+  "pyarrow",
+  "tokenizers>=0.14.0",
+  "sentencepiece",
+  "wandb",
+  "zstd",
+  # "xformers@git+https://github.com/facebookresearch/xformers.git@v0.0.29",
+
+  "flash_attn@git+https://github.com/Dao-AILab/flash-attention@bedf8774677315c5eb7e640eca6d7aa15e87775a",
+  "rotary_emb@git+https://github.com/Dao-AILab/flash-attention@bedf8774677315c5eb7e640eca6d7aa15e87775a#subdirectory=csrc/rotary",
+  "dropout_layer_norm@git+https://github.com/Dao-AILab/flash-attention@bedf8774677315c5eb7e640eca6d7aa15e87775a#subdirectory=csrc/layer_norm",
+  "xentropy_cuda_lib@git+https://github.com/Dao-AILab/flash-attention@bedf8774677315c5eb7e640eca6d7aa15e87775a#subdirectory=csrc/xentropy",
+
+  # for finetuning
+  # "bitsandbytes==0.40.0",
+  # "transformers==4.31.0",
+  # "peft==0.4.0",
+  # "accelerate==0.21.0",
+  # "einops==0.6.1",
+  # "evaluate==0.4.0",
+  # "scikit-learn==1.2.2",
+]
+name = "TinyLlama"
+requires-python = ">= 3.9"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.project]
+channels = ["nvidia/label/cuda-12.4.0", "nvidia", "conda-forge", "pytorch"]
+platforms = ["linux-64"]
+
+[tool.pixi.system-requirements]
+
+[tool.pixi.dependencies]
+cuda = { version = "*", channel = "nvidia/label/cuda-12.4.0" }
+packaging = "*"
+rust = "*"
+setuptools = "*"
+pytorch = { version = ">=2.1.0", channel = "pytorch" }
+pytorch-cuda = { version = "12.4.*", channel = "pytorch" }
+psutil = "*"
+ninja = "*"
+mpmath = "*"
+
+[tool.pixi.pypi-dependencies]
+# tinyllama = { path = ".", editable = true }
+# torch = { version = ">=2.1.0.dev", index = "https://download.pytorch.org/whl/cu118" }
+xformers = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+triton = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+
+[tool.pixi.pypi-options]
+no-build-isolation = [
+  "flash-attn",
+  "rotary-emb",
+  "dropout-layer-norm",
+  "xentropy-cuda-lib",
+]
+
+[tool.pixi.tasks]
+
+[tool.pixi.feature.efa.activation]
+env = { FI_EFA_SET_CUDA_SYNC_MEMOPS = "0", LD_PRELOAD = "/usr/local/cuda-12.4/lib/libnccl.so" }
+
+[tool.pixi.feature.efa.target.linux-64.activation.env]
+LD_LIBRARY_PATH = "/opt/aws-ofi-nccl/lib:$LD_LIBRARY_PATH"
+
+[tool.pixi.environments]
+efa = ["efa"]
