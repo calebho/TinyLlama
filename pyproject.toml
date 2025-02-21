@@ -1,5 +1,10 @@
 [project]
-authors = [{name = "Caleb Ho", email = "calebh@meta.com"}]
+authors = [
+  { name = "Peiyuan Zhang" },
+  { name = "Guangtao Zeng" },
+  { name = "Tianduo Wang" },
+  { name = "Wei Lu" },
+]
 dependencies = [
   "lightning@git+https://github.com/Lightning-AI/lightning@master",
   "jsonargparse[signatures]",
